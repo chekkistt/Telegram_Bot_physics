@@ -7,8 +7,7 @@ from telegram._poll import Poll
 import matplotlib.pyplot as plt
 import sqlite3
 
-# 5576913898:AAHpB8Xsridx7KJywbvl2b8UtfCE7I0gZTU
-bot = telebot.TeleBot("5576913898:AAHpB8Xsridx7KJywbvl2b8UtfCE7I0gZTU")
+bot = telebot.TeleBot("token")
 n = 0
 k = 0
 # ограничения для тестов
