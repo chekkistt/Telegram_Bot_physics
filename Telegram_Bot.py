@@ -22,18 +22,6 @@ people_short_otzv_3 = 0
 people_short_otzv_4 = 0
 podr_otz = []
 
-####################################################################################
-##      КОМАНДЫ АДМИНА:                                                           ##
-##                                                                                ##
-##      1) /statistik - построение гистограммы коротких отзывов                   ##
-##      2) /read - чтение подробных отзывов                                       ##
-##      3) /delete_data - удаление баз данных пользователей                       ##
-##      4) /delete_all_no_num - удаление из базы всех данных пользователей тестов ##
-##      5) /delete_admin_no_num                                                   ##
-##      6) /delete_podr_otz - удаление ВСЕХ подробных отзывов из базы             ##
-##      7) /delete_admin_short_otz - удаление короткого отзыва из базы            ##
-####################################################################################
-
 try:
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
@@ -114,7 +102,7 @@ try:
     # очистка баз данных: админ
     @bot.message_handler(commands=['delete_data'])
     def delete_data(message):
-        if message.chat.id == 847195722:
+        if message.chat.id == #id:
             connect = sqlite3.connect('data_telegram.db')
             cursor = connect.cursor()
             cursor.execute(f"DELETE FROM telegram_users WHERE id")
@@ -125,7 +113,7 @@ try:
 
     @bot.message_handler(commands=['delete_all_no_num'])
     def delete_num_no_all(message):
-        if message.chat.id == 847195722:
+        if message.chat.id == #id:
             connect = sqlite3.connect('data_telegram.db')
             cursor = connect.cursor()
             cursor.execute(f"DELETE FROM tests_no_num WHERE id")
@@ -136,7 +124,7 @@ try:
 
     @bot.message_handler(commands=['delete_admin_no_num'])
     def delete_admin_no_num(message):
-        if message.chat.id == 847195722:
+        if message.chat.id == #id:
             admin = message.chat.id
             connect = sqlite3.connect('data_telegram.db')
             cursor = connect.cursor()
@@ -148,7 +136,7 @@ try:
 
     @bot.message_handler(commands=['delete_podr_otz'])
     def delete_podr_otz(message):
-        if message.chat.id == 847195722:
+        if message.chat.id == #id:
             connect = sqlite3.connect('data_telegram.db')
             cursor = connect.cursor()
             cursor.execute(f"DELETE FROM podr_otz")
@@ -159,7 +147,7 @@ try:
 
     @bot.message_handler(commands=['delete_admin_short_otz'])
     def delete_short_otz(message):
-        if message.chat.id == 847195722:
+        if message.chat.id == #id:
             admin = message.chat.id
             connect = sqlite3.connect('data_telegram.db')
             cursor = connect.cursor()
@@ -1077,7 +1065,7 @@ try:
 
     @bot.message_handler(commands=['statistik'])
     def statistik(message):
-        if message.chat.id == 847195722:
+        if message.chat.id == #id:
             connect = sqlite3.connect('data_telegram.db')
             cursor = connect.cursor()
             cursor.execute(f"""SELECT people_short_otzv_1 FROM short_otz""")
@@ -2141,7 +2129,7 @@ try:
     # админ , для чтения подробных отзывов
     @bot.message_handler(commands=['read'])
     def reader(message):
-        if message.chat.id == 847195722:
+        if message.chat.id == #id:
             connect = sqlite3.connect('data_telegram.db')
             cursor = connect.cursor()
             cursor.execute("""SELECT otz FROM podr_otz""")
