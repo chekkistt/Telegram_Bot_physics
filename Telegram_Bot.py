@@ -3,11 +3,15 @@ from telebot import types
 import time
 import random as rn
 
-from telegram._poll import Poll
 import matplotlib.pyplot as plt
+
+from telegram._poll import Poll, PollAnswer
+
 import sqlite3
 
-bot = telebot.TeleBot("token")
+
+bot = telebot.TeleBot("TOKEN")
+
 n = 0
 k = 0
 # ограничения для тестов
@@ -15,6 +19,7 @@ num_no_machine = ""
 num_no_tepl = ""
 num_no_el = ""
 num_no_kvants = ""
+num_no_seven = ""
 # для графика
 people_short_otzv_1 = 0
 people_short_otzv_2 = 0
@@ -25,7 +30,7 @@ podr_otz = []
 try:
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
-        q = open("hello_sticker.webp", "rb")
+        q = open("sticker.webp", "rb")
         bot.send_sticker(message.chat.id, q)
 
         # создание кнопочек
@@ -39,11 +44,12 @@ try:
         item6 = types.KeyboardButton("📝Тесты📝")
         item7 = types.KeyboardButton("🗂Оставить отзыв🗂")
         markup.add(item1, item2, item3, item4, item5, item6, item7)
-        bot.send_message(message.chat.id, "Выберете интересующий вас раздел физики =)", reply_markup=markup)
+        bot.send_message(message.chat.id, f"Привет, {message.from_user.first_name}!")
+        bot.send_message(message.chat.id, "Выбери интересующий тебя раздел физики =)", reply_markup=markup)
 
 
         # создание базы данных для тестов
-        connect = sqlite3.connect('data_telegram.db')
+        connect = sqlite3.connect('bd')
         cursor = connect.cursor()
         cursor.execute("""CREATE TABLE IF NOT EXISTS telegram_users(
             id INTEGER,
@@ -68,7 +74,8 @@ try:
                                             num_no_machine TEXT,
                                             num_no_tepl TEXT,
                                             num_no_el TEXT,
-                                            num_no_kvants TEXT
+                                            num_no_kvants TEXT,
+                                            num_no_seven TEXT
                                         )""")
         connect.commit()
 
@@ -77,7 +84,7 @@ try:
         cursor.execute(f"SELECT id FROM telegram_users WHERE id = {people_id}")
         data1 = cursor.fetchone()
         global n, k
-        global num_no_machine, num_no_tepl, num_no_el, num_no_kvants
+        global num_no_machine, num_no_tepl, num_no_el, num_no_kvants, num_no_seven
         if data1 is None:
             # добавление данных
             users = [message.chat.id, n, k]
@@ -94,68 +101,151 @@ try:
         cursor.execute(f"SELECT id FROM tests_no_num WHERE id = {people_id}")
         data3 = cursor.fetchone()
         if data3 is None:
-            data_tests_no_num = [message.chat.id, num_no_machine, num_no_tepl, num_no_el, num_no_kvants]
-            cursor.execute("INSERT INTO tests_no_num VALUES(?,?,?,?,?);", data_tests_no_num)
+            data_tests_no_num = [message.chat.id, num_no_machine, num_no_tepl, num_no_el, num_no_kvants, num_no_seven]
+            cursor.execute("INSERT INTO tests_no_num VALUES(?,?,?,?,?,?);", data_tests_no_num)
+            connect.commit()
+
+
+    def send_welcome_x2(message):
+        # создание базы данных для тестов
+        connect = sqlite3.connect('bd')
+        cursor = connect.cursor()
+        cursor.execute("""CREATE TABLE IF NOT EXISTS telegram_users(
+                    id INTEGER,
+                    n INTEGER,
+                    k INTEGER
+                )""")
+        connect.commit()
+
+        # создание базы данных для коротких ответов опроса
+        cursor.execute("""CREATE TABLE IF NOT EXISTS short_otz(
+                                        id INTEGER,
+                                        people_short_otzv_1 INTEGER,
+                                        people_short_otzv_2 INTEGER,
+                                        people_short_otzv_3 INTEGER,
+                                        people_short_otzv_4 INTEGER
+                                    )""")
+        connect.commit()
+
+        # создание базы данных для тестов - улучшение
+        cursor.execute("""CREATE TABLE IF NOT EXISTS tests_no_num(
+                                                    id INTEGER,
+                                                    num_no_machine TEXT,
+                                                    num_no_tepl TEXT,
+                                                    num_no_el TEXT,
+                                                    num_no_kvants TEXT,
+                                                    num_no_seven TEXT
+                                                )""")
+        connect.commit()
+
+        people_id = message.chat.id
+        cursor.execute(f"SELECT id FROM telegram_users WHERE id = {people_id}")
+        data1 = cursor.fetchone()
+        global n, k
+        global num_no_machine, num_no_tepl, num_no_el, num_no_kvants, num_no_seven
+        if data1 is None:
+            # добавление данных
+            users = [message.chat.id, n, k]
+            cursor.execute("INSERT INTO telegram_users VALUES(?,?,?);", users)
+            connect.commit()
+
+        cursor.execute(f"SELECT id FROM short_otz WHERE id = {people_id}")
+        data2 = cursor.fetchone()
+        if data2 is None:
+            data_short_otz = [message.chat.id, people_short_otzv_1, people_short_otzv_2, people_short_otzv_3,
+                              people_short_otzv_4]
+            cursor.execute("INSERT INTO short_otz VALUES(?,?,?,?,?);", data_short_otz)
+            connect.commit()
+
+        cursor.execute(f"SELECT id FROM tests_no_num WHERE id = {people_id}")
+        data3 = cursor.fetchone()
+        if data3 is None:
+            data_tests_no_num = [message.chat.id, num_no_machine, num_no_tepl, num_no_el, num_no_kvants, num_no_seven]
+            cursor.execute("INSERT INTO tests_no_num VALUES(?,?,?,?,?,?);", data_tests_no_num)
             connect.commit()
 
 
     # очистка баз данных: админ
     @bot.message_handler(commands=['delete_data'])
     def delete_data(message):
-        if message.chat.id == #id:
-            connect = sqlite3.connect('data_telegram.db')
-            cursor = connect.cursor()
-            cursor.execute(f"DELETE FROM telegram_users WHERE id")
-            connect.commit()
-            bot.send_message(message.chat.id, "Данные пользователей из базы успешно удалены!")
-        else:
-            bot.send_message(message.chat.id, "Вы не админ!")
+        try:
+            if message.chat.id == id_admin:
+                connect = sqlite3.connect('bd')
+                cursor = connect.cursor()
+                cursor.execute(f"DELETE FROM telegram_users WHERE id")
+                connect.commit()
+                bot.send_message(message.chat.id, "Данные пользователей из базы успешно удалены!")
+            else:
+                bot.send_message(message.chat.id, "Вы не админ!")
+        except:
+            bot.send_message(message.chat.id, "Ячейка данных пуста")
 
     @bot.message_handler(commands=['delete_all_no_num'])
     def delete_num_no_all(message):
-        if message.chat.id == #id:
-            connect = sqlite3.connect('data_telegram.db')
-            cursor = connect.cursor()
-            cursor.execute(f"DELETE FROM tests_no_num WHERE id")
-            connect.commit()
-            bot.send_message(message.chat.id, "Данные пользователей из базы успешно удалены!")
-        else:
-            bot.send_message(message.chat.id, "Вы не админ!")
+        try:
+            if message.chat.id == id_admin:
+                connect = sqlite3.connect('bd')
+                cursor = connect.cursor()
+                cursor.execute(f"DELETE FROM tests_no_num WHERE id")
+                connect.commit()
+                bot.send_message(message.chat.id, "Данные пользователей из базы успешно удалены!")
+            else:
+                bot.send_message(message.chat.id, "Вы не админ!")
+        except:
+            bot.send_message(message.chat.id, "Ячейка данных пуста")
 
     @bot.message_handler(commands=['delete_admin_no_num'])
     def delete_admin_no_num(message):
-        if message.chat.id == #id:
-            admin = message.chat.id
-            connect = sqlite3.connect('data_telegram.db')
-            cursor = connect.cursor()
-            cursor.execute(f"DELETE FROM tests_no_num WHERE id = {admin}")
-            connect.commit()
-            bot.send_message(message.chat.id, "Данные админа из базы успешно удалены!")
-        else:
-            bot.send_message(message.chat.id, "Вы не админ!")
+        try:
+            if message.chat.id == id_admin:
+                admin = message.chat.id
+                connect = sqlite3.connect('bd')
+                cursor = connect.cursor()
+                cursor.execute(f"DELETE FROM tests_no_num WHERE id = {admin}")
+                connect.commit()
+                global n, k
+                k = 0
+                n = 0
+                cursor = connect.cursor()
+                cursor.execute(f"Update telegram_users set k = {k} where id = {admin}")
+                connect.commit()
+                cursor = connect.cursor()
+                cursor.execute(f"Update telegram_users set n = {n} where id = {admin}")
+                connect.commit()
+                bot.send_message(message.chat.id, "Данные админа из базы успешно удалены!")
+            else:
+                bot.send_message(message.chat.id, "Вы не админ!")
+        except:
+            bot.send_message(message.chat.id, "Ячейка данных пуста")
 
     @bot.message_handler(commands=['delete_podr_otz'])
     def delete_podr_otz(message):
-        if message.chat.id == #id:
-            connect = sqlite3.connect('data_telegram.db')
-            cursor = connect.cursor()
-            cursor.execute(f"DELETE FROM podr_otz")
-            connect.commit()
-            bot.send_message(message.chat.id, "Данные из базы успешно удалены!")
-        else:
-            bot.send_message(message.chat.id, "Вы не админ!")
+        try:
+            if message.chat.id == id_admin:
+                connect = sqlite3.connect('bd')
+                cursor = connect.cursor()
+                cursor.execute(f"DELETE FROM podr_otz")
+                connect.commit()
+                bot.send_message(message.chat.id, "Данные из базы успешно удалены!")
+            else:
+                bot.send_message(message.chat.id, "Вы не админ!")
+        except:
+            bot.send_message(message.chat.id, "Ячейка данных пуста")
 
     @bot.message_handler(commands=['delete_admin_short_otz'])
     def delete_short_otz(message):
-        if message.chat.id == #id:
-            admin = message.chat.id
-            connect = sqlite3.connect('data_telegram.db')
-            cursor = connect.cursor()
-            cursor.execute(f"DELETE FROM short_otz WHERE id={admin}")
-            connect.commit()
-            bot.send_message(message.chat.id, "Данные админа из базы успешно удалены!")
-        else:
-            bot.send_message(message.chat.id, "Вы не админ!")
+        try:
+            if message.chat.id == id_admin:
+                admin = message.chat.id
+                connect = sqlite3.connect('bd')
+                cursor = connect.cursor()
+                cursor.execute(f"DELETE FROM short_otz WHERE id={admin}")
+                connect.commit()
+                bot.send_message(message.chat.id, "Данные админа из базы успешно удалены!")
+            else:
+                bot.send_message(message.chat.id, "Вы не админ!")
+        except:
+            bot.send_message(message.chat.id, "Ячейка данных пуста")
 
     def machine(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
@@ -519,23 +609,33 @@ try:
             t1 = open("фото для проекта/теплопроводность.jpg", "rb")
             bot.send_photo(call.message.chat.id, t1)
 
-        elif call.data == "✅":
-            try:
-                connect = sqlite3.connect('data_telegram.db')
-                cursor = connect.cursor()
-                people_user_id = call.message.chat.id
-                cursor.execute(f"""SELECT k FROM telegram_users WHERE id = {people_user_id}""")
-                k_data = cursor.fetchone()
-                k = int(k_data[0]) + 1
-                cursor.execute(f"""Update telegram_users set k = {k} where id = {people_user_id}""")
-                connect.commit()
-                test_after_true_answer(call.message)
-            except:
-                pass
-
-
         elif call.data == "тесты":
             tests(call.message)
+            send_welcome_x2(call.message)
+
+        elif call.data == "yes":
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+
+            cursor.execute(f"SELECT SUM(people_short_otzv_1) FROM short_otz")
+            data_people_short_otzv_1 = cursor.fetchone()[0]
+
+            cursor.execute(f"SELECT SUM(people_short_otzv_2) FROM short_otz")
+            data_people_short_otzv_2 = cursor.fetchone()[0]
+
+            cursor.execute(f"SELECT SUM(people_short_otzv_3) FROM short_otz")
+            data_people_short_otzv_3 = cursor.fetchone()[0]
+
+            cursor.execute(f"SELECT SUM(people_short_otzv_4) FROM short_otz")
+            data_people_short_otzv_4 = cursor.fetchone()[0]
+            plt.bar(1, data_people_short_otzv_1)
+            plt.bar(2, data_people_short_otzv_2)
+            plt.bar(3, data_people_short_otzv_3)
+            plt.bar(4, data_people_short_otzv_4)
+            plt.show()
+
+        elif call.data == "no":
+            bot.delete_message(call.message.chat.id, call.message.message_id)
 
         elif call.data == "конвекция":
             bot.reply_to(call.message,
@@ -1029,77 +1129,85 @@ try:
 
     # тесты
     def tests(message):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-        item1 = "Тесты по механическим явлениям"
-        item2 = "Тесты по тепловым явлениям"
-        item3 = "Тесты по электромагнитным явлениям"
-        item4 = "Тесты по квантовым явлениям"
-        item0 = "⬅️Выход в главное меню"
-        markup.add(item1, item2, item3, item4, item0)
-        bot.send_message(message.chat.id, "Если вы правильно решили тест, то нажмите на значок ✅ после теста!")
-        bot.send_message(message.chat.id, text="Доступные тесты на данный момент:", reply_markup=markup)
+        try:
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+            item1 = "Тесты по механическим явлениям"
+            item2 = "Тесты по тепловым явлениям"
+            item3 = "Тесты по электромагнитным явлениям"
+            item4 = "Тесты по квантовым явлениям"
+            item5 = "Тест для 7 класса"
+            item0 = "⬅️Выход в главное меню"
+            markup.add(item1, item2, item3, item4, item5, item0)
+            bot.send_message(message.chat.id, text="Доступные тесты на данный момент:", reply_markup=markup)
 
-        connect = sqlite3.connect('data_telegram.db')
-        cursor = connect.cursor()
-        people_id = message.chat.id
-        cursor.execute(f"SELECT id FROM telegram_users WHERE id = {people_id}")
-        data = cursor.fetchone()
-        global n, k
-        if data is None:
-            # добавление данных
-            users = [message.chat.id, n, k]
-            cursor.execute("INSERT INTO telegram_users VALUES(?,?,?);", users)
-            connect.commit()
-
-
-    def test_after_true_answer(message):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
-        item1 = "Тесты по механическим явлениям"
-        item2 = "Тесты по тепловым явлениям"
-        item3 = "Тесты по электромагнитным явлениям"
-        item4 = "Тесты по квантовым явлениям"
-        item0 = "⬅️Выход в главное меню"
-        markup.add(item1, item2, item3, item4, item0)
-        bot.send_message(message.chat.id, "Ответ записан!", reply_markup=markup)
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            people_id = message.chat.id
+            cursor.execute(f"SELECT id FROM telegram_users WHERE id = {people_id}")
+            data = cursor.fetchone()
+            global n, k
+            if data is None:
+                # добавление данных
+                users = [message.chat.id, n, k]
+                cursor.execute("INSERT INTO telegram_users VALUES(?,?,?);", users)
+                connect.commit()
+        except:
+            send_welcome_x2(message)
 
 
     @bot.message_handler(commands=['statistik'])
     def statistik(message):
-        if message.chat.id == #id:
-            connect = sqlite3.connect('data_telegram.db')
-            cursor = connect.cursor()
-            cursor.execute(f"""SELECT people_short_otzv_1 FROM short_otz""")
-            data_people_short_otzv_1 = cursor.fetchall()
-            cursor.execute(f"""SELECT people_short_otzv_2 FROM short_otz""")
-            data_people_short_otzv_2 = cursor.fetchall()
-            cursor.execute(f"""SELECT people_short_otzv_3 FROM short_otz""")
-            data_people_short_otzv_3 = cursor.fetchall()
-            cursor.execute(f"""SELECT people_short_otzv_4 FROM short_otz""")
-            data_people_short_otzv_4 = cursor.fetchall()
-            try:
-                y1 = data_people_short_otzv_1[0]
-                y2 = data_people_short_otzv_2[0]
-                y3 = data_people_short_otzv_3[0]
-                y4 = data_people_short_otzv_4[0]
-                plt.bar(1, y1)
-                plt.bar(2, y2)
-                plt.bar(3, y3)
-                plt.bar(4, y4)
-                plt.show()
-            except:
-                pass
-        else:
-            bot.send_message(message.chat.id, "Ты не админ!")
+        try:
+            if message.chat.id == id_admin:
+                connect = sqlite3.connect('bd')
+                cursor = connect.cursor()
+
+                cursor.execute(f"SELECT SUM(people_short_otzv_1) FROM short_otz")
+                data_people_short_otzv_1 = cursor.fetchone()[0]
+
+                cursor.execute(f"SELECT SUM(people_short_otzv_2) FROM short_otz")
+                data_people_short_otzv_2 = cursor.fetchone()[0]
+
+                cursor.execute(f"SELECT SUM(people_short_otzv_3) FROM short_otz")
+                data_people_short_otzv_3 = cursor.fetchone()[0]
+
+                cursor.execute(f"SELECT SUM(people_short_otzv_4) FROM short_otz")
+                data_people_short_otzv_4 = cursor.fetchone()[0]
+                summ = data_people_short_otzv_1 + data_people_short_otzv_2 + data_people_short_otzv_3 + data_people_short_otzv_4
+
+                markup = types.InlineKeyboardMarkup(row_width=1)
+                item_yes = types.InlineKeyboardButton("Да", callback_data="yes")
+                item_no = types.InlineKeyboardButton("Нет", callback_data="no")
+                markup.add(item_yes, item_no)
+                try:
+                    bot.send_message(message.chat.id,
+f"""
+Больше тестов: {data_people_short_otzv_1}, {data_people_short_otzv_1//summ * 100}%
+Расширенный список тем: {data_people_short_otzv_2}, {data_people_short_otzv_2//summ * 100}%
+Более подробный материал в темах: {data_people_short_otzv_3}, {data_people_short_otzv_3//summ * 100}%
+Другое: {data_people_short_otzv_4}, {data_people_short_otzv_4//summ * 100}%
+Всего проголосовало: {summ}
+""")
+                    bot.send_message(message.chat.id, "Вывести гистограмму на компьютер?", reply_markup=markup)
+
+                except:
+                    pass
+            else:
+                bot.send_message(message.chat.id, "Ты не админ!")
+        except:
+            bot.send_message(message.chat.id, "Коротких отзывов пока что нет(")
 
 
     def test_of_mechine(message):
+        global this_quiz
         c_id = message.chat.id
         num_question = 0
-        connect = sqlite3.connect('data_telegram.db')
-        cursor = connect.cursor()
-        cursor.execute(f"""SELECT num_no_machine FROM tests_no_num WHERE id = {c_id}""")
-        data_tuple_machine = cursor.fetchone()
         try:
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            cursor.execute(f"""SELECT num_no_machine FROM tests_no_num WHERE id = {c_id}""")
+            data_tuple_machine = cursor.fetchone()
+
             data_machine = str(data_tuple_machine[0])
 
             if ("1" in data_machine) and ("2" in data_machine) and ("3" in data_machine) and ("4" in data_machine) and (
@@ -1109,26 +1217,24 @@ try:
                 while num_question == 0:
                     num = rn.randint(1, 9)
                     if num < 10 and (str(num) not in data_machine):
-                        connect = sqlite3.connect('data_telegram.db')
+                        connect = sqlite3.connect('bd')
                         cursor = connect.cursor()
                         num_question = num
                         data_machine += str(num_question)
                         cursor.execute(f"""UPDATE tests_no_num set num_no_machine={data_machine} WHERE id = {c_id}""")
                         connect.commit()
         except:
-            send_welcome(message)
+            send_welcome_x2(message)
 
         if num_question == 1:
+
             q1 = "Что изучает кинематика?"
             answers1 = ["Изучает способы описания движений",
                         "Изучает причины движений",
                         "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q1, options=answers1, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+            this_quiz = bot.send_poll(chat_id=c_id, question=q1, options=answers1, type=Poll.QUIZ, correct_option_id=0, is_anonymous=False)
+
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1139,15 +1245,13 @@ try:
 
 
         elif num_question == 2:
+
             q2 = "Что изучает динамика?"
             answers2 = ["Изучает способы описания движений", "Изучает причины движений",
                         "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q2, options=answers2, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+            this_quiz = bot.send_poll(chat_id=c_id, question=q2, options=answers2, type=Poll.QUIZ, correct_option_id=1, is_anonymous=False)
+
+            connect = sqlite3.connect('bd
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1157,14 +1261,12 @@ try:
             connect.commit()
 
         elif num_question == 3:
+
             q3 = "Формула потенциальной энергии?"
             answers3 = ["E=FS", "E=mgh", "E=mv^2/2", "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q3, options=answers3, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q3, options=answers3, type=Poll.QUIZ, correct_option_id=1, is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1174,14 +1276,12 @@ try:
             connect.commit()
 
         elif num_question == 4:
+
             q4 = "Формула кинетической энергии?"
             answers4 = ["E=mv^2/2", "E=mgh", "E=mv", "E=FS"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q4, options=answers4, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q4, options=answers4, type=Poll.QUIZ, correct_option_id=0, is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1191,17 +1291,15 @@ try:
             connect.commit()
 
         elif num_question == 5:
+
             q5 = "Что такое ускорение?"
             answers5 = ["Физическая величина, характерезующая быстроту изменения энергии",
                         "Физическая величина, характерезующая быстроту изменения времени",
                         "Физическая величина, характеризующая быстроту измения скорости",
                         "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q5, options=answers5, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q5, options=answers5, type=Poll.QUIZ, correct_option_id=2, is_anonymous=False)
+            connect = sqlite3.connect('bd)
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1211,14 +1309,13 @@ try:
             connect.commit()
 
         elif num_question == 6:
+
             q6 = "Формула третьего закона Ньютона:"
             answers6 = ["F1= - F2", "F1=F2", "F1≠F2", "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q6, options=answers6, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q6, options=answers6, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1228,14 +1325,13 @@ try:
             connect.commit()
 
         elif num_question == 7:
+
             q7 = "Формула второго закона Ньютона:"
             answers7 = ["F=mv", "F=gt", "F=mg", "F=ma"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q7, options=answers7, type=Poll.QUIZ, correct_option_id=3,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q7, options=answers7, type=Poll.QUIZ, correct_option_id=3,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1245,17 +1341,16 @@ try:
             connect.commit()
 
         elif num_question == 8:
+
             q8 = "Что такое импульс?"
             answers8 = ["Величина, равная произведению силы, действующей на тело и его скорости",
                         "Величина, равная произведению массы тела и его скорости",
                         "Величина, равная произведению массы тела и его силы, действующей на тело",
                         "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q8, options=answers8, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q8, options=answers8, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1265,16 +1360,15 @@ try:
             connect.commit()
 
         elif num_question == 9:
+
             q9 = "Какое движение называют равномерным?"
             answers9 = ["Движение, при котором тело движется без остановок",
                         "Движение, при котором за равные промежутки времени тело проходит равные пути",
                         "Движение, при котором тело движется исключительно по прямой трактории"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q9, options=answers9, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q9, options=answers9, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1285,16 +1379,15 @@ try:
 
         # новые тесты
         elif num_question == 10:
+
             q10 = "Как называется явление изменения формы или объёма тела?"
             answers10 = ["Изменение состава вещества",
                          "Деформация",
                          "Изменение агрегатного состояния вещества"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q10, options=answers10, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q10, options=answers10, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1304,17 +1397,16 @@ try:
             connect.commit()
 
         elif num_question == 11:
+
             q11 = "Что такое КПД?"
             answers11 = [
                 "Это векторная физическая величина, численно равная отношению полезной работы к затраченной в системе",
                 "Это скалярная физическая величина, численно равная отношению затраченной работы к полезной в системе",
                 "Это скалярная физическая величина, численно равная отношению полезной работы к затраченной в системе"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q11, options=answers11, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q11, options=answers11, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1324,16 +1416,15 @@ try:
             connect.commit()
 
         elif num_question == 12:
+
             q12 = "Что такое давление?"
             answers12 = ["Это физическая величина, равная отношению силы давления F к площади поверхности S",
                          "Это физичесая величина, равная отношению площади поверхности S к силе давления F",
                          "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q12, options=answers12, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q12, options=answers12, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1343,17 +1434,16 @@ try:
             connect.commit()
 
         elif num_question == 13:
+
             q13 = "Что такое сила Архимеда?"
             answers13 = ["Это сила, стремящееся втянуть тело в воду",
                          "Это сила, стремящееся вытянуть тело из воды",
                          "Это сила, стремящееся растянуть тело по поверхности воды",
                          "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q13, options=answers13, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q13, options=answers13, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1363,18 +1453,17 @@ try:
             connect.commit()
 
         elif num_question == 14:
+
             q14 = "В каких направлениях передаётся давление покоящейся жидкости?"
             answers14 = ["Во всех",
                          "По направению к центру",
                          "По касательной относительно молекулы",
                          "В каком-то хаотическом одном",
                          "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q14, options=answers14, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q14, options=answers14, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1383,15 +1472,16 @@ try:
             cursor.execute(f"""Update telegram_users set n = {n} where id = {people_user_id}""")
             connect.commit()
 
-
     def test_of_tepl(message):
+        global this_quiz
         c_id = message.chat.id
         num_question = 0
-        connect = sqlite3.connect('data_telegram.db')
-        cursor = connect.cursor()
-        cursor.execute(f"""SELECT num_no_tepl FROM tests_no_num WHERE id = {c_id}""")
-        data_tuple_tepl = cursor.fetchone()
         try:
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            cursor.execute(f"""SELECT num_no_tepl FROM tests_no_num WHERE id = {c_id}""")
+            data_tuple_tepl = cursor.fetchone()
+
             data_tepl = str(data_tuple_tepl[0])
 
             if ("1" in data_tepl) and ("2" in data_tepl) and ("3" in data_tepl) and ("4" in data_tepl) and ("5" in data_tepl) and (
@@ -1401,26 +1491,25 @@ try:
                 while num_question == 0:
                     num = rn.randint(1, 9)
                     if num < 10 and (str(num) not in data_tepl):
-                        connect = sqlite3.connect('data_telegram.db')
+                        connect = sqlite3.connect('bd')
                         cursor = connect.cursor()
                         num_question = num
                         data_tepl += str(num_question)
                         cursor.execute(f"""UPDATE tests_no_num set num_no_tepl={data_tepl} WHERE id = {c_id}""")
                         connect.commit()
         except:
-            send_welcome(message)
+            send_welcome_x2(message)
 
         if num_question == 1:
+
             q1 = "Как называется процесс передачи энергии от одного тела к другому или от одной части тела к другой благодаря тепловому движению частиц?"
             answers1 = ["Теплоотдача",
                         "Теплопроводность",
                         "Теплообмен"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q1, options=answers1, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q1, options=answers1, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1431,16 +1520,15 @@ try:
 
 
         elif num_question == 2:
+
             q2 = "Как называется вид теплопередачи, при котором энергия передаётся слоями жидкости или газа?"
             answers2 = ["Теплообмен",
                         "Излучение",
                         "Конвекция"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q2, options=answers2, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q2, options=answers2, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1450,16 +1538,15 @@ try:
             connect.commit()
 
         elif num_question == 3:
+
             q3 = "Как называется вид теплопередачи, при котором испускание и распространение энергии происходит при помощи электромагнитных волн и элементарных частиц?"
             answers3 = ["Излучение",
                         "Конвекция",
                         "Теплообмен"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q3, options=answers3, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q3, options=answers3, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1469,16 +1556,15 @@ try:
             connect.commit()
 
         elif num_question == 4:
+
             q = "Притяжение между частицами твёрдого тела?"
             answers = ["Сильное",
                        "Умеренное",
                        "Слабое"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1488,16 +1574,15 @@ try:
             connect.commit()
 
         elif num_question == 5:
+
             q = "Притяжение между частицами жидкости?"
             answers = ["Сильное",
                        "Умеренное",
                        "Слабое"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1507,16 +1592,15 @@ try:
             connect.commit()
 
         elif num_question == 6:
+
             q = "Притяжение между частицами газа?"
             answers = ["Сильное",
                        "Умеренное",
                        "Слабое"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1526,16 +1610,15 @@ try:
             connect.commit()
 
         elif num_question == 7:
+
             q = "Что такое дифузия?"
             answers = ["Явление проникновения молекул одного вещества в промежутки между молекулами другого вещества",
                        "Явление непроникновения молекул одного вещества в промежутки между молекулами другого вещества",
                        "Свойство молекул одного вещества проникать в молекулы другого вещества"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1545,6 +1628,7 @@ try:
             connect.commit()
 
         elif num_question == 8:
+
             q = "Формула количества теплоты:"
             answers = ["Q = Lm",
                        "Q = qm",
@@ -1552,12 +1636,10 @@ try:
                        "Q = qm(t2-t1)",
                        "Q = cm",
                        "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1567,16 +1649,15 @@ try:
             connect.commit()
 
         elif num_question == 9:
+
             q = "Что такое тепловые двигатели?"
             answers = ["Устройства, увеличивающие внутреннюю энергию за счёт совершения механической работы",
                        "Устройства, КПД которых равен 80%",
                        "Устройства, совершающие механическую работу за счёт внутренней энергии топлива"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1587,6 +1668,7 @@ try:
 
         # новые тесты
         elif num_question == 10:
+
             q = "Формула для испарения и конденсации:"
             answers = ["Q = Lm",
                        "Q = qm",
@@ -1594,12 +1676,10 @@ try:
                        "Q = qm(t2-t1)",
                        "Q = cm",
                        "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1609,6 +1689,7 @@ try:
             connect.commit()
 
         elif num_question == 11:
+
             q = "Формула количества теплоты, выделяемое при сгорании топлива:"
             answers = ["Q = Lm",
                        "Q = qm",
@@ -1616,12 +1697,10 @@ try:
                        "Q = qm(t2-t1)",
                        "Q = cm",
                        "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1632,13 +1711,15 @@ try:
 
 
     def test_of_elctr(message):
+        global this_quiz
         c_id = message.chat.id
         num_question = 0
-        connect = sqlite3.connect('data_telegram.db')
-        cursor = connect.cursor()
-        cursor.execute(f"""SELECT num_no_el FROM tests_no_num WHERE id = {c_id}""")
-        data_tuple_el = cursor.fetchone()
         try:
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            cursor.execute(f"""SELECT num_no_el FROM tests_no_num WHERE id = {c_id}""")
+            data_tuple_el = cursor.fetchone()
+
             data_el = str(data_tuple_el[0])
 
             if ("1" in data_el) and ("2" in data_el) and ("3" in data_el) and ("4" in data_el) and ("5" in data_el) and ("6" in data_el) and (
@@ -1648,27 +1729,26 @@ try:
                 while num_question == 0:
                     num = rn.randint(1, 9)
                     if num < 10 and (str(num) not in data_el):
-                        connect = sqlite3.connect('data_telegram.db')
+                        connect = sqlite3.connect('bd')
                         cursor = connect.cursor()
                         num_question = num
                         data_el += str(num_question)
                         cursor.execute(f"""UPDATE tests_no_num set num_no_el = {data_el} WHERE id = {c_id}""")
                         connect.commit()
         except:
-            send_welcome(message)
+            send_welcome_x2(message)
 
 
         if num_question == 1:
+
             q = "Проводники:"
             answers = ["Состоят из нетральных в целом атомов или молекул",
                        "Все металлы",
                        "Не имеют заряженных частиц"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1678,16 +1758,15 @@ try:
             connect.commit()
 
         elif num_question == 2:
+
             q = "Диэлектрики:"
             answers = ["Все металлы",
                        "Не имеют заряженных частиц",
                        "Состоят из нетральных в целом атомов или молекул"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1697,17 +1776,16 @@ try:
             connect.commit()
 
         elif num_question == 3:
+
             q = "Что называют постоянным электрическим током?"
             answers = ["Хаотичное движение заряженных частиц",
                        "Упорядоченное движение незаряженных частиц",
                        "Упорядоченное движение заряженных частиц",
                        "Нет правильного варианта ответа"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1717,6 +1795,7 @@ try:
             connect.commit()
 
         elif num_question == 4:
+
             q = "Какая из картинок(формул) соответствует формуле силы тока?"
             a1 = open("фото для теста/1.jpeg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -1728,12 +1807,10 @@ try:
                        "2",
                        "3",
                        "Ни одна из ниже представленных"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1743,6 +1820,7 @@ try:
             connect.commit()
 
         elif num_question == 5:
+
             q = "Какая из картинок(формул) соответствует формуле напряжения?"
             a1 = open("фото для теста/1.jpeg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -1754,12 +1832,10 @@ try:
                        "2",
                        "3",
                        "Ни одна из ниже представленных"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1769,6 +1845,7 @@ try:
             connect.commit()
 
         elif num_question == 6:
+
             q = "Какая из картинок(формул) соответствует формуле сопротивления?"
             a1 = open("фото для теста/1.jpeg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -1780,12 +1857,10 @@ try:
                        "2",
                        "3",
                        "Ни одна из ниже представленных"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1795,18 +1870,17 @@ try:
             connect.commit()
 
         elif num_question == 7:
+
             q = "Какое соединение изображено на фотографии?"
             a = open("фото для теста/паралл.jpg", "rb")
             bot.send_photo(message.chat.id, a)
             answers = ["Параллельное",
                        "Последовательное",
                        "Прямоугольное"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1816,18 +1890,17 @@ try:
             connect.commit()
 
         elif num_question == 8:
+
             q = "Какое соединение изображено на фотографии?"
             a = open("фото для теста/послед.jpg", "rb")
             bot.send_photo(message.chat.id, a)
             answers = ["Параллельное",
                        "Последовательное",
                        "Прямоугольное"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1837,6 +1910,7 @@ try:
             connect.commit()
 
         elif num_question == 9:
+
             q = "Какая фотография соответствует формуле работы тока?"
             a1 = open("фото для теста/джоуль-ленц.jpg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -1848,12 +1922,10 @@ try:
                        "2",
                        "3",
                        "Ни одна"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1864,6 +1936,7 @@ try:
 
         # новые тесты
         elif num_question == 10:
+
             q = "Какая фотография соответствует формуле мощности электрического тока?"
             a1 = open("фото для теста/джоуль-ленц.jpg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -1875,12 +1948,10 @@ try:
                        "2",
                        "3",
                        "Ни одна"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1890,6 +1961,7 @@ try:
             connect.commit()
 
         elif num_question == 11:
+
             q = "Какая фотография соответствует формуле закона Джоуля-Ленца?"
             a1 = open("фото для теста/джоуль-ленц.jpg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -1901,12 +1973,10 @@ try:
                        "2",
                        "3",
                        "Ни одна"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1917,13 +1987,14 @@ try:
 
 
     def tests_of_kvant(message):
+        global this_quiz
         c_id = message.chat.id
         num_question = 0
-        connect = sqlite3.connect('data_telegram.db')
-        cursor = connect.cursor()
-        cursor.execute(f"""SELECT num_no_kvants FROM tests_no_num WHERE id = {c_id}""")
-        data_tuple_kvants = cursor.fetchone()
         try:
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            cursor.execute(f"""SELECT num_no_kvants FROM tests_no_num WHERE id = {c_id}""")
+            data_tuple_kvants = cursor.fetchone()
             data_kvants = str(data_tuple_kvants[0])
 
             if ("1" in data_kvants) and ("2" in data_kvants) and ("3" in data_kvants) and ("4" in data_kvants):
@@ -1932,7 +2003,7 @@ try:
                 while num_question == 0:
                     num = rn.randint(1, 4)
                     if num < 5 and (str(num) not in data_kvants):
-                        connect = sqlite3.connect('data_telegram.db')
+                        connect = sqlite3.connect('bd')
                         cursor = connect.cursor()
                         num_question = num
                         data_kvants += str(num_question)
@@ -1940,20 +2011,19 @@ try:
                         connect.commit()
             #print(data_kvants)
         except:
-            send_welcome(message)
+            send_welcome_x2(message)
 
         if num_question == 1:
+
             q = "Какой учёный обнаружил явление радиоактивности?"
             answers = ["Исаак Ньютон",
                        "Майкл Фарадей",
                        "Анри Беккерель",
                        "Эрнест Резерфорд"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1963,6 +2033,7 @@ try:
             connect.commit()
 
         elif num_question == 2:
+
             q = "На какой из фотографий изображено альфа-излучение?"
             a1 = open("фото для теста/альфа.jpg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -1974,12 +2045,10 @@ try:
                        "2",
                        "3",
                        "Ни на одной"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=0,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -1989,6 +2058,7 @@ try:
             connect.commit()
 
         elif num_question == 3:
+
             q = "На какой из фотографий изображено бета-излучение?"
             a1 = open("фото для теста/альфа.jpg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -2000,12 +2070,10 @@ try:
                        "2",
                        "3",
                        "Ни на одной"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=1,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
@@ -2015,6 +2083,7 @@ try:
             connect.commit()
 
         elif num_question == 4:
+
             q = "На какой из фотографий изображено гамма-излучение?"
             a1 = open("фото для теста/альфа.jpg", "rb")
             bot.send_photo(message.chat.id, a1)
@@ -2026,18 +2095,165 @@ try:
                        "2",
                        "3",
                        "Ни на одной"]
-            markup = types.InlineKeyboardMarkup(row_width=1)
-            true_item = types.InlineKeyboardButton("✅", callback_data="✅", one_time_keyboard=True)
-            markup.add(true_item)
-            bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
-                          reply_markup=markup)
-            connect = sqlite3.connect('data_telegram.db')
+
+            this_quiz = bot.send_poll(chat_id=c_id, question=q, options=answers, type=Poll.QUIZ, correct_option_id=2,
+                          is_anonymous=False)
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_user_id = message.chat.id
             cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
             n_data = cursor.fetchone()
             n = int(n_data[0]) + 1
             cursor.execute(f"""Update telegram_users set n = {n} where id = {people_user_id}""")
+            connect.commit()
+
+    # тесты для 7 класса
+    def seven_class(message):
+        global this_quiz
+        c_id = message.chat.id
+        num_question = 0
+        try:
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            cursor.execute(f"""SELECT num_no_seven FROM tests_no_num WHERE id = {c_id}""")
+            data_tuple_seven = cursor.fetchone()
+
+            data_seven = str(data_tuple_seven[0])
+
+            if ("1" in data_seven) and ("2" in data_seven) and ("3" in data_seven) and ("4" in data_seven) and ("5" in data_seven):
+                bot.send_message(message.chat.id, "Вы решили все тесты по данной теме!")
+                connect = sqlite3.connect('bd')
+                cursor = connect.cursor()
+
+                people_user_id = message.chat.id
+
+                cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
+                n_data = cursor.fetchone()
+                cursor.execute(f"""SELECT k FROM telegram_users WHERE id = {people_user_id}""")
+                k_data = cursor.fetchone()
+
+
+                results = round((int(k_data[0])) / (int(n_data[0])) * 100)
+                bot.send_message(message.chat.id,
+f"""Процент успешного выполнения тестов: {results}%
+Всего пройдено тестов: {int(n_data[0])}   
+Дано правильных ответов: {int(k_data[0])}   
+""")
+            else:
+                while num_question == 0:
+                    num = rn.randint(1, 5)
+                    if num < 6 and (str(num) not in data_seven):
+                        connect = sqlite3.connect('bd')
+                        cursor = connect.cursor()
+                        num_question = num
+                        data_seven += str(num_question)
+                        cursor.execute(f"""UPDATE tests_no_num set num_no_seven={data_seven} WHERE id = {c_id}""")
+                        connect.commit()
+        except:
+            send_welcome_x2(message)
+
+        if num_question == 1:
+            q1 = "Единица работы - джоуль. Выразите 0,05 МДж в Дж."
+            answer1 = ["5000 Дж",
+                       "50000 Дж",
+                       "500 Дж",
+                       "500000 Дж"]
+            this_quiz = bot.send_poll(chat_id=c_id, question=q1, options=answer1, type=Poll.QUIZ, correct_option_id=1, is_anonymous=False, explanation="Для того чтобы получить верный ответ, нужно исходное значение умножить на 1 млн.")
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            people_user_id = message.chat.id
+            cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
+            n_data = cursor.fetchone()
+            n = int(n_data[0]) + 1
+            cursor.execute(f"""Update telegram_users set n = {n} where id = {people_user_id}""")
+            connect.commit()
+
+        if num_question == 2:
+            q2 = "Какая совершется работа при равномерном подъёме груза массой 1 кг на высоту в 1м? Дайте ответ без округления. g = 9,8."
+            answer2 = ["9 Дж",
+                       "10 Дж",
+                       "9,8 Дж",
+                       "8 Дж"]
+            this_quiz = bot.send_poll(chat_id=c_id, question=q2, options=answer2, type=Poll.QUIZ, correct_option_id=2, is_anonymous=False, explanation="Воспользуйся формулой A=Fh=mgh(в данной задаче).")
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            people_user_id = message.chat.id
+            cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
+            n_data = cursor.fetchone()
+            n = int(n_data[0]) + 1
+            cursor.execute(f"""Update telegram_users set n = {n} where id = {people_user_id}""")
+            connect.commit()
+
+        if num_question == 3:
+            q3 = "Какую работу совершает строительный кран при равномерном подъёме плиты массой 2000 кг на высоту 12 м? Дайте ответ без округления в кДж. g = 9,8."
+            answer3 = ["300 кДж",
+                       "200 кДж",
+                       "235 кДж",
+                       "235,2 кДж"]
+            this_quiz = bot.send_poll(chat_id=c_id, question=q3, options=answer3, type=Poll.QUIZ, correct_option_id=3, is_anonymous=False, explanation="Воспользуйся формулой A=Fh=mgh(в данной задаче).")
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            people_user_id = message.chat.id
+            cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
+            n_data = cursor.fetchone()
+            n = int(n_data[0]) + 1
+            cursor.execute(f"""Update telegram_users set n = {n} where id = {people_user_id}""")
+            connect.commit()
+
+        if num_question == 4:
+            q4 = "Каждую секунду насос подаёт 20 л воды на высоту 10 м. Какую работу совершает насос за 1 минуту? Дайте ответ без округления в кДж. g = 9,8."
+            answer4 = ["117,6 кДж",
+                       "117,6 Дж",
+                       "117 кДж",
+                       "120 кДж"]
+            this_quiz = bot.send_poll(chat_id=c_id, question=q4, options=answer4, type=Poll.QUIZ, correct_option_id=0, is_anonymous=False,
+                                      explanation="""
+Найдём массу тела: m=pV = 1000 * 0.02 = 20 кг
+Работа силы за 1 с: A1 = Fh = mgh = 20 * 9,8 * 10 = 1960 Дж
+Работа силы за 1 мин: A = 60 * A1 = 60 * 1960 = 117.6 кДж
+""")
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            people_user_id = message.chat.id
+            cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
+            n_data = cursor.fetchone()
+            n = int(n_data[0]) + 1
+            cursor.execute(f"""Update telegram_users set n = {n} where id = {people_user_id}""")
+            connect.commit()
+
+        if num_question == 5:
+            q5 = "Какую работу совершает двигатель мотоцикла мощностью 200 кВт за 30 мин? Дайте ответ в МДж."
+            answer5 = ["255 кДж",
+                       "305 кДж",
+                       "360 МДж",
+                       "305 МДж"]
+            this_quiz = bot.send_poll(chat_id=c_id, question=q5, options=answer5, type=Poll.QUIZ, correct_option_id=2, is_anonymous=False,
+                                      explanation="""
+Необходимо воспользоваться формулой A=N*t
+A = 200*1000*30*60 = 360000000 Дж, или 360 МДж
+""")
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            people_user_id = message.chat.id
+            cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
+            n_data = cursor.fetchone()
+            n = int(n_data[0]) + 1
+            cursor.execute(f"""Update telegram_users set n = {n} where id = {people_user_id}""")
+            connect.commit()
+
+
+    @bot.poll_answer_handler()
+    def test_answer(quiz_answer: PollAnswer):
+        #print(quiz_answer.option_ids[0])
+        global this_quiz
+        if this_quiz.poll.correct_option_id == quiz_answer.option_ids[0]:
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+            people_user_id = quiz_answer.user.id
+            cursor.execute(f"""SELECT k FROM telegram_users WHERE id = {people_user_id}""")
+            k_data = cursor.fetchone()
+            k = int(k_data[0]) + 1
+            cursor.execute(f"""Update telegram_users set k = {k} where id = {people_user_id}""")
             connect.commit()
 
 
@@ -2064,28 +2280,22 @@ try:
     # чтение n и k + вычисление процентра пройденных тестов к числу правильно выполненных
     @bot.message_handler(commands=['results'])
     def users_statictik(message):
-        global k
-        global n
-        connect = sqlite3.connect('data_telegram.db')
-        cursor = connect.cursor()
-
-        people_user_id = message.chat.id
-
-        cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
-        n_data = cursor.fetchone()
-        cursor.execute(f"""SELECT k FROM telegram_users WHERE id = {people_user_id}""")
-        k_data = cursor.fetchone()
         try:
+            connect = sqlite3.connect('bd')
+            cursor = connect.cursor()
+
+            people_user_id = message.chat.id
+
+            cursor.execute(f"""SELECT n FROM telegram_users WHERE id = {people_user_id}""")
+            n_data = cursor.fetchone()
+            cursor.execute(f"""SELECT k FROM telegram_users WHERE id = {people_user_id}""")
+            k_data = cursor.fetchone()
+
             if int(n_data[0]) != 0:
                 results = round((int(k_data[0])) / (int(n_data[0])) * 100)
                 bot.send_message(message.chat.id, f"""Процент успешного выполнения тестов: {results}%\
                                                     Всего пройдено тестов: {int(n_data[0])}   
 Дано правильных ответов: {int(k_data[0])}    """)
-                if results > 101 or int(k_data[0]) > int(n_data[0]):
-                    bot.send_message(message.chat.id, "Вы обманываете! Ваш результат обнуляется!")
-                    people_id = message.chat.id
-                    cursor.execute(f"DELETE FROM telegram_users WHERE id={people_id}")
-                    connect.commit()
             else:
                 markup = types.InlineKeyboardMarkup(row_width=1)
                 item = types.InlineKeyboardButton("Решать тесты!", callback_data="тесты")
@@ -2110,7 +2320,7 @@ try:
                     podr_otz.append(people[1:])
 
                     # создание таблицы для отзывов
-                    connect = sqlite3.connect('data_telegram.db')
+                    connect = sqlite3.connect('bd')
                     cursor = connect.cursor()
                     cursor.execute("""CREATE TABLE IF NOT EXISTS podr_otz(
                                         otz TEXT
@@ -2126,18 +2336,21 @@ try:
         except:
             pass
 
-    # админ , для чтения подробных отзывов
+    # админ, для чтения подробных отзывов
     @bot.message_handler(commands=['read'])
     def reader(message):
-        if message.chat.id == #id:
-            connect = sqlite3.connect('data_telegram.db')
-            cursor = connect.cursor()
-            cursor.execute("""SELECT otz FROM podr_otz""")
-            data_otz= cursor.fetchall()
-            for line_data in data_otz:
-                bot.send_message(message.chat.id, line_data)
-        else:
-            bot.send_message(message.cgat.id, "Вы не админ!")
+        try:
+            if message.chat.id == id_admin:
+                connect = sqlite3.connect('bd')
+                cursor = connect.cursor()
+                cursor.execute("""SELECT otz FROM podr_otz""")
+                data_otz= cursor.fetchall()
+                for line_data in data_otz:
+                    bot.send_message(message.chat.id, line_data)
+            else:
+                bot.send_message(message.cgat.id, "Вы не админ!")
+        except:
+            bot.send_message(message.chat.id, "Отзывов пока что нет(")
 
     # ответ на нажатие кнопок
     @bot.message_handler(func=lambda m: True)
@@ -2377,7 +2590,7 @@ try:
             otzv(message)
 
         elif message.text.lower() == "больше тестов":
-            connect = sqlite3.connect('data_telegram.db')
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_id = message.chat.id
             try:
@@ -2399,10 +2612,10 @@ try:
                     connect.commit()
                     exit_to_menu(message)
             except:
-                send_welcome(message)
+                send_welcome_x2(message)
 
         elif message.text.lower() == "расширенный список тем":
-            connect = sqlite3.connect('data_telegram.db')
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_id = message.chat.id
             try:
@@ -2424,10 +2637,10 @@ try:
                     connect.commit()
                     exit_to_menu(message)
             except:
-                send_welcome(message)
+                send_welcome_x2(message)
 
         elif message.text.lower() == "более подробный материал в темах":
-            connect = sqlite3.connect('data_telegram.db')
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_id = message.chat.id
             try:
@@ -2449,10 +2662,10 @@ try:
                     connect.commit()
                     exit_to_menu(message)
             except:
-                send_welcome(message)
+                send_welcome_x2(message)
 
         elif message.text.lower() == "другое..":
-            connect = sqlite3.connect('data_telegram.db')
+            connect = sqlite3.connect('bd')
             cursor = connect.cursor()
             people_id = message.chat.id
             try:
@@ -2474,7 +2687,7 @@ try:
                     connect.commit()
                     exit_to_menu(message)
             except:
-                send_welcome(message)
+                send_welcome_x2(message)
 
         # тесты
         elif message.text.lower() == "📝тесты📝":
@@ -2491,6 +2704,9 @@ try:
 
         elif message.text.lower() == "тесты по квантовым явлениям":
             tests_of_kvant(message)
+
+        elif message.text.lower() == "тест для 7 класса":
+            seven_class(message)
 
         else:
             bot.reply_to(message, "Я не понимаю ваш ввод =(")
